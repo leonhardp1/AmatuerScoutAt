@@ -1,13 +1,139 @@
+import 'package:amateur_scout_at/models/club.dart';
+import 'package:amateur_scout_at/services/app_state.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../theme/app_theme.dart';
 import '../services/api_service.dart';
 import '../models/player.dart';
 import '../widgets/header.dart'; 
-import '../widgets/filter_sidebar.dart';
 import '../widgets/player_card.dart';
 import '../widgets/stat_card.dart';
+import 'package:provider/provider.dart';
 
+// --- HIER IST DEIN FILTERBAR WIDGET ---
+class FilterBar extends StatefulWidget {
+  final Function(Map<String, dynamic>) onFilterApplied;
+
+  const FilterBar({super.key, required this.onFilterApplied});
+
+  @override
+  State<FilterBar> createState() => _FilterBarState();
+}
+
+class _FilterBarState extends State<FilterBar> {
+  String? selectedBundesland;
+  String? selectedLiga;
+  String? selectedPosition;
+
+  final Map<String, List<String>> bundeslandDaten = {
+    "Salzburg": ["Salzburger Liga", "1. Landesliga", "2. Landesliga Nord", "2. Landesliga Süd"],
+    "Wien": ["Stadtliga", "2. Landesliga", "Oberliga"],
+    "Oberösterreich": ["OÖ Liga", "Landesliga Ost", "Landesliga West"],
+    "Niederösterreich": ["1. Landesliga", "2. Landesliga Ost", "2. Landesliga West"],
+    "Steiermark": ["Landesliga", "Oberliga Nord", "Oberliga Mitte"],
+    "Kärnten": ["Kärntner Liga", "Unterliga West", "Unterliga Ost"],
+    "Tirol": ["Tiroler Liga", "Landesliga West", "Landesliga Ost"],
+    "Burgenland": ["Burgenlandliga", "II. Liga Nord", "II. Liga Mitte"],
+    "Vorarlberg": ["Vorarlberg-Liga", "Landesliga"],
+  };
+
+  void _notifyChange() {
+    widget.onFilterApplied({
+      'bundesland': selectedBundesland,
+      'liga': selectedLiga,
+      'position': selectedPosition,
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      decoration: const BoxDecoration(
+        color: AppColors.card,
+        border: Border(bottom: BorderSide(color: AppColors.border)),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            const Icon(LucideIcons.slidersHorizontal, size: 18, color: AppColors.primary),
+            const SizedBox(width: 20),
+            
+            _buildCompactDropdown(
+              hint: "Region",
+              value: selectedBundesland,
+              items: bundeslandDaten.keys.toList(),
+              onChanged: (val) => setState(() {
+                selectedBundesland = val;
+                selectedLiga = null;
+                _notifyChange();
+              }),
+            ),
+            const SizedBox(width: 12),
+            _buildCompactDropdown(
+              hint: "Liga",
+              value: selectedLiga,
+              items: selectedBundesland != null ? bundeslandDaten[selectedBundesland]! : [],
+              onChanged: selectedBundesland == null ? null : (val) => setState(() {
+                selectedLiga = val;
+                _notifyChange();
+              }),
+            ),
+            const SizedBox(width: 12),
+            _buildCompactDropdown(
+              hint: "Position",
+              value: selectedPosition,
+              items: ["Tor", "Verteidigung", "Mittelfeld", "Sturm"],
+              onChanged: (val) => setState(() {
+                selectedPosition = val;
+                _notifyChange();
+              }),
+            ),
+            if (selectedBundesland != null || selectedPosition != null) ...[
+              const SizedBox(width: 20),
+              TextButton.icon(
+                onPressed: () => setState(() {
+                  selectedBundesland = null;
+                  selectedLiga = null;
+                  selectedPosition = null;
+                  _notifyChange();
+                }),
+                icon: const Icon(LucideIcons.x, size: 14),
+                label: const Text("Reset"),
+                style: TextButton.styleFrom(foregroundColor: AppColors.accent),
+              ),
+            ]
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCompactDropdown({required String hint, required String? value, required List<String> items, required ValueChanged<String?>? onChanged}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppColors.input,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          hint: Text(hint, style: const TextStyle(fontSize: 13, color: AppColors.mutedForeground)),
+          items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 13)))).toList(),
+          onChanged: onChanged,
+          dropdownColor: AppColors.card,
+          icon: const Icon(LucideIcons.chevronDown, size: 14),
+        ),
+      ),
+    );
+  }
+}
+
+// --- DASHBOARD SCREEN ---
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -21,7 +147,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   
   List<Player> _allPlayers = [];
   bool _isLoading = true;
-  
   int _visibleCount = 100;
   String _searchQuery = "";
   String _sortBy = 'name';
@@ -33,22 +158,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _loadInitialData();
   }
 
-  Future<void> _loadInitialData() async {
-    try {
-      final players = await _apiService.getPlayers();
-      setState(() {
-        _allPlayers = players;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Fehler beim Laden: $e')),
-        );
-      }
-    }
+ Future<void> _loadInitialData() async {
+  final appState = Provider.of<AppState>(context, listen: false);
+
+  setState(() => _isLoading = true);
+
+  try {
+    // Lädt alles und speichert automatisch in AppState
+    await appState.loadAllData();
+
+    // Spieler in lokale Liste kopieren, damit Filter/Search funktioniert
+    setState(() {
+      _allPlayers = appState.players;
+      _isLoading = false;
+    });
+  } catch (e) {
+    debugPrint("Fehler beim Initialen Laden: $e");
+    setState(() => _isLoading = false);
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -56,48 +184,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final isDesktop = screenWidth > 1024;
     final isTablet = screenWidth > 600;
 
-    // --- VOLLSTÄNDIGE FILTER-LOGIK ---
     List<Player> filteredPlayers = _allPlayers.where((p) {
-      // 1. Suche
       final matchesSearch = p.name.toLowerCase().contains(_searchQuery) || 
                             p.club.toLowerCase().contains(_searchQuery);
-      
-      // 2. Sidebar Filter
-      bool matchesSidebar = true;
-
-      // Bundesland
-      if (_activeFilters['bundesland'] != null) {
-        matchesSidebar = matchesSidebar && p.region == _activeFilters['bundesland'];
-      }
-      
-      // Liga
-      if (_activeFilters['liga'] != null) {
-        matchesSidebar = matchesSidebar && p.leagueName == _activeFilters['liga'];
-      }
-
-      // Position
-      if (_activeFilters['position'] != null) {
-        matchesSidebar = matchesSidebar && p.position == _activeFilters['position'];
-      }
-
-      // // Alter (Range)
-      // if (_activeFilters['ageMin'] != null && _activeFilters['ageMax'] != null) {
-      //   matchesSidebar = matchesSidebar && 
-      //                    p.age >= _activeFilters['ageMin'] && 
-      //                    p.age <= _activeFilters['ageMax'];
-      // }
-
-      // Tore (Range)
-      if (_activeFilters['goalsMin'] != null && _activeFilters['goalsMax'] != null) {
-        matchesSidebar = matchesSidebar && 
-                         p.goals >= _activeFilters['goalsMin'] && 
-                         p.goals <= _activeFilters['goalsMax'];
-      }
-
-      return matchesSearch && matchesSidebar;
+      bool matchesFilters = true;
+      if (_activeFilters['bundesland'] != null) matchesFilters = matchesFilters && p.region == _activeFilters['bundesland'];
+      if (_activeFilters['liga'] != null) matchesFilters = matchesFilters && p.leagueName == _activeFilters['liga'];
+      if (_activeFilters['position'] != null) matchesFilters = matchesFilters && p.position == _activeFilters['position'];
+      return matchesSearch && matchesFilters;
     }).toList();
 
-    // --- SORTIERUNG ---
     if (_sortBy == 'goals') {
       filteredPlayers.sort((a, b) => b.goals.compareTo(a.goals));
     } else {
@@ -106,129 +202,90 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     final displayedPlayers = filteredPlayers.take(_visibleCount).toList();
 
-    // Stats
-    final totalPlayers = filteredPlayers.length;
-    final totalGoals = filteredPlayers.fold<int>(0, (sum, p) => sum + p.goals);
-    final avgGoals = totalPlayers > 0 ? (totalGoals / totalPlayers).toStringAsFixed(1) : "0";
-    final activeClubs = filteredPlayers.map((p) => p.club).toSet().length;
-
     return Scaffold(
       key: _scaffoldKey,
-      drawer: isDesktop ? null : FilterSidebar(
-        onFilterApplied: (filters) => setState(() {
-          _activeFilters = filters;
-          _visibleCount = 100;
-          Navigator.pop(context);
-        }),
-      ),
-      body: Row(
+      body: Column(
         children: [
-          if (isDesktop) 
-            FilterSidebar(
-              onFilterApplied: (filters) => setState(() {
-                _activeFilters = filters;
-                _visibleCount = 100;
-              }),
-            ),
+          AppHeader(
+            onMenuPressed: isDesktop ? null : () => _scaffoldKey.currentState?.openDrawer(),
+            onSearchChanged: (value) => setState(() {
+              _searchQuery = value.toLowerCase();
+              _visibleCount = 100;
+            }),
+          ),
           
+          // JETZT RICHTIG EINGEBUNDEN:
+          FilterBar(
+            onFilterApplied: (filters) => setState(() {
+              _activeFilters = filters;
+              _visibleCount = 100;
+            }),
+          ),
+
           Expanded(
-            child: Column(
-              children: [
-                AppHeader(
-                  onMenuPressed: isDesktop ? null : () => _scaffoldKey.currentState?.openDrawer(),
-                  onSearchChanged: (value) => setState(() {
-                    _searchQuery = value.toLowerCase();
-                    _visibleCount = 100;
-                  }),
-                ),
-                
-                Expanded(
-                  child: _isLoading 
-                    ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-                    : SingleChildScrollView(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildStatsGrid(isDesktop, totalPlayers, totalGoals, avgGoals, activeClubs),
-                            
-                            const SizedBox(height: 32),
-
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('Entdecke Talente', 
-                                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.foreground)),
-                                    Text('$totalPlayers Ergebnisse gefunden', 
-                                      style: const TextStyle(color: AppColors.mutedForeground)),
-                                  ],
-                                ),
-                                _buildSortDropdown(),
-                              ],
-                            ),
-                            
-                            const SizedBox(height: 24),
-
-                            GridView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: isDesktop ? 4 : (isTablet ? 2 : 1),
-                                crossAxisSpacing: 20,
-                                mainAxisSpacing: 20,
-                                childAspectRatio: 0.75, // Leicht angepasst für Button Platz
-                              ),
-                              itemCount: displayedPlayers.length,
-                              itemBuilder: (context, index) => PlayerCard(player: displayedPlayers[index]),
-                            ),
-                            
-                            const SizedBox(height: 40),
-
-                            if (_visibleCount < filteredPlayers.length)
-                              _buildLoadMoreButton(),
-                          ],
+            child: _isLoading 
+              ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      _buildStatsGrid(isDesktop, filteredPlayers.length),
+                      const SizedBox(height: 32),
+                      _buildResultsHeader(filteredPlayers.length),
+                      const SizedBox(height: 24),
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: isDesktop ? 4 : (isTablet ? 2 : 1),
+                          crossAxisSpacing: 20,
+                          mainAxisSpacing: 20,
+                          childAspectRatio: 0.75,
                         ),
+                        itemCount: displayedPlayers.length,
+                        itemBuilder: (context, index) => PlayerCard(player: displayedPlayers[index]),
                       ),
+                      const SizedBox(height: 40),
+                      if (_visibleCount < filteredPlayers.length) _buildLoadMoreButton(),
+                    ],
+                  ),
                 ),
-              ],
-            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStatsGrid(bool isDesktop, int total, int goals, String avg, int clubs) {
-    final stats = [
-      {'label': 'Spieler', 'value': total.toString(), 'icon': LucideIcons.users, 'color': AppColors.primary},
-      {'label': 'Tore gesamt', 'value': goals.toString(), 'icon': LucideIcons.trophy, 'color': AppColors.accent},
-      {'label': 'Schnitt', 'value': avg, 'icon': LucideIcons.trendingUp, 'color': AppColors.primary},
-      {'label': 'Vereine', 'value': clubs.toString(), 'icon': LucideIcons.shield, 'color': AppColors.mutedForeground},
-    ];
+  Widget _buildResultsHeader(int count) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Entdecke Talente', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            Text('$count Ergebnisse gefunden', style: const TextStyle(color: AppColors.mutedForeground)),
+          ],
+        ),
+        _buildSortDropdown(),
+      ],
+    );
+  }
 
-    return GridView.builder(
+  Widget _buildStatsGrid(bool isDesktop, int total) {
+    return GridView.count(
       shrinkWrap: true,
+      crossAxisCount: isDesktop ? 4 : 2,
+      crossAxisSpacing: 16,
+      mainAxisSpacing: 16,
+      childAspectRatio: 1.8,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: isDesktop ? 4 : 2,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: isDesktop ? 1.8 : 1.4,
-      ),
-      itemCount: stats.length,
-      itemBuilder: (context, index) {
-        final s = stats[index];
-        return StatCard(
-          label: s['label'] as String,
-          value: s['value'] as String,
-          change: "", 
-          icon: s['icon'] as IconData,
-          iconColor: s['color'] as Color,
-        );
-      },
+      children: [
+        StatCard(label: "Spieler", value: total.toString(), icon: LucideIcons.users, iconColor: AppColors.primary, change: ""),
+        const StatCard(label: "Tore", value: "842", icon: LucideIcons.trophy, iconColor: AppColors.accent, change: ""),
+        const StatCard(label: "Schnitt", value: "1.2", icon: LucideIcons.trendingUp, iconColor: AppColors.primary, change: ""),
+        const StatCard(label: "Vereine", value: "24", icon: LucideIcons.shield, iconColor: AppColors.mutedForeground, change: ""),
+      ],
     );
   }
 
@@ -236,14 +293,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: AppColors.input, 
-        borderRadius: BorderRadius.circular(10), 
-        border: Border.all(color: AppColors.border)
+        color: AppColors.input, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _sortBy,
-          dropdownColor: AppColors.card,
           items: const [
             DropdownMenuItem(value: 'name', child: Text('Name A-Z', style: TextStyle(fontSize: 13))),
             DropdownMenuItem(value: 'goals', child: Text('Meiste Tore', style: TextStyle(fontSize: 13))),
@@ -255,18 +309,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildLoadMoreButton() {
-    return Center(
-      child: ElevatedButton.icon(
-        onPressed: () => setState(() => _visibleCount += 100),
-        icon: const Icon(LucideIcons.plus, size: 18),
-        label: const Text('Weitere 100 laden'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      ),
+    return ElevatedButton(
+      onPressed: () => setState(() => _visibleCount += 100),
+      child: const Text('Mehr laden'),
     );
   }
 }

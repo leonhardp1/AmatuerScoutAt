@@ -67,7 +67,7 @@ class AppHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Amateur Scout',
+                  'ScouteBase',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,

@@ -1,3 +1,4 @@
+import 'package:amateur_scout_at/screens/playerDetailScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../theme/app_theme.dart';
@@ -191,23 +192,30 @@ class _PlayerCardState extends State<PlayerCard> {
       ],
     );
   }
-
-  Widget _buildViewProfileButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: () {},
-        style: ElevatedButton.styleFrom(
-          backgroundColor: _isHovered ? AppColors.primary : AppColors.muted,
-          foregroundColor: _isHovered ? AppColors.primaryForeground : AppColors.foreground,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          elevation: 0,
-        ),
-        child: const Text('Profil ansehen', style: TextStyle(fontWeight: FontWeight.w500)),
+Widget _buildViewProfileButton() {
+  return SizedBox(
+    width: double.infinity,
+    child: ElevatedButton(
+      onPressed: () {
+        // HIER DIE NAVIGATION EINFÜGEN:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PlayerDetailScreen(player: widget.player),
+          ),
+        );
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: _isHovered ? AppColors.primary : AppColors.muted,
+        foregroundColor: _isHovered ? AppColors.primaryForeground : AppColors.foreground,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 0,
       ),
-    );
-  }
+      child: const Text('Profil ansehen', style: TextStyle(fontWeight: FontWeight.w500)),
+    ),
+  );
+}
 
   Widget _buildStatBox({required IconData icon, required Color iconColor, required String value, required String label}) {
     return Expanded(
