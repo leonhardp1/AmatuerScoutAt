@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project version="4">
-  <component name="ProjectModuleManager">
-    <modules>
-      <module fileurl="file://$PROJECT_DIR$/amateur_scout_at.iml" filepath="$PROJECT_DIR$/amateur_scout_at.iml" />
-      <module fileurl="file://$PROJECT_DIR$/android/amateur_scout_at_android.iml" filepath="$PROJECT_DIR$/android/amateur_scout_at_android.iml" />
-    </modules>
-  </component>
-</project>
