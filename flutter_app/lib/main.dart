@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:provider/provider.dart'; // Provider importieren
+import 'package:provider/provider.dart';
 import 'screens/dashboard_screen.dart';
-import 'services/app_state.dart'; // AppState importieren
+import 'screens/splash_screen.dart'; // SplashScreen importieren
+import 'services/app_state.dart';
 import 'theme/app_theme.dart';
 
 void main() async {
@@ -15,10 +16,10 @@ void main() async {
     anonKey: 'sb_publishable_Ns8FITmYF8RTPf3rxxAhZw__zHRub0b',
   );
 
-  // App starten mit AppState als ChangeNotifierProvider
   runApp(
     ChangeNotifierProvider(
-      create: (_) => AppState(),
+      // WICHTIG: Wir rufen hier die Ladefunktion des AppState auf
+      create: (_) => AppState()..loadInitialData(), 
       child: const AmateurScoutApp(),
     ),
   );
@@ -33,7 +34,18 @@ class AmateurScoutApp extends StatelessWidget {
       title: 'Amateur Scout AT',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
-      home: const DashboardScreen(),
+      
+      // LOGIK FÜR DEN START-BILDSCHIRM
+      home: Consumer<AppState>(
+        builder: (context, appState, child) {
+          // Wir prüfen, ob der AppState noch lädt
+          if (appState.isInitializing) {
+            return const SplashScreen(); // Zeige den SplashScreen
+          } else {
+            return const DashboardScreen(); // Wechsele zum Dashboard
+          }
+        },
+      ),
     );
   }
 }

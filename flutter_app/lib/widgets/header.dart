@@ -4,7 +4,6 @@ import '../theme/app_theme.dart';
 
 class AppHeader extends StatelessWidget {
   final VoidCallback? onMenuPressed;
-  // Callback für die Live-Suche
   final Function(String)? onSearchChanged;
 
   const AppHeader({
@@ -29,7 +28,6 @@ class AppHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Menu Button (Mobile/Tablet)
           if (onMenuPressed != null)
             IconButton(
               onPressed: onMenuPressed,
@@ -37,30 +35,29 @@ class AppHeader extends StatelessWidget {
               color: AppColors.foreground,
             ),
 
-          // Logo
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [AppColors.primary, Color(0xFF16A34A)],
+          // --- NEUES LOGO WIDGET ---
+          Hero(
+            tag: 'app_logo',
+            child: Container(
+              width: 36, // Etwas größer für bessere Sichtbarkeit
+              height: 36,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                // Optional: Leichter Hintergrund falls das Logo Transparenz hat
+                color: Colors.white.withOpacity(0.05), 
               ),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Center(
-              child: Text(
-                'AS',
-                style: TextStyle(
-                  color: AppColors.primaryForeground,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.asset(
+                  'assets/images/logo.jpeg', // Pfad zu deinem ScoutBase Logo
+                  fit: BoxFit.contain,
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 12),
+          // --- ENDE LOGO WIDGET ---
+
           if (isDesktop || screenWidth > 600)
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -88,12 +85,12 @@ class AppHeader extends StatelessWidget {
 
           const SizedBox(width: 32),
 
-          // Search Bar - JETZT MIT FUNKTION
+          // Search Bar
           Expanded(
             child: Container(
               constraints: const BoxConstraints(maxWidth: 500),
               child: TextField(
-                onChanged: onSearchChanged, // Reicht den Text ans Dashboard weiter
+                onChanged: onSearchChanged,
                 style: const TextStyle(fontSize: 14),
                 decoration: InputDecoration(
                   hintText: 'Search players, clubs, leagues...',

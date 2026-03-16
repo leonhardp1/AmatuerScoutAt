@@ -1,54 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../theme/app_theme.dart';
-import '../services/api_service.dart';
-import '../models/player.dart';
-import '../widgets/header.dart'; 
-import '../widgets/player_card.dart';
-import '../widgets/stat_card.dart';
 
-// --- STICKY DELEGATE ---
-// Diese Klasse steuert das "Festkleben" der Filterleiste
-class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
-  final Widget child;
-  _SliverAppBarDelegate({required this.child});
+class FilterBar extends StatefulWidget {
+  final Function(Map<String, dynamic>) onFilterApplied;
+
+  const FilterBar({super.key, required this.onFilterApplied});
 
   @override
-  double get minExtent => 70.0; // Höhe wenn fixiert
-  @override
-  double get maxExtent => 70.0; // Höhe wenn ausgefahren
-
-  @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      color: AppColors.background, // Hintergrundfarbe damit es beim Scrollen nicht transparent ist
-      child: child,
-    );
-  }
-
-  @override
-  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) => true;
+  State<FilterBar> createState() => _FilterBarState();
 }
 
-// --- DASHBOARD SCREEN ---
-class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
-
-  @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
-}
-
-class _DashboardScreenState extends State<DashboardScreen> {
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  final ApiService _apiService = ApiService();
-  
-  List<Player> _allPlayers = [];
-  bool _isLoading = true;
-  int _visibleCount = 100;
-  String _searchQuery = "";
-  String _sortBy = 'name';
-  
-  // Zentrale Filter-Variablen im State des Screens
+class _FilterBarState extends State<FilterBar> {
   String? selectedBundesland;
   String? selectedLiga;
   String? selectedPosition;
@@ -65,112 +28,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     "Vorarlberg": ["Vorarlberg-Liga", "Landesliga"],
   };
 
-  @override
-  void initState() {
-    super.initState();
-    _loadInitialData();
-  }
-
-  Future<void> _loadInitialData() async {
-    try {
-      final players = await _apiService.getPlayers();
-      setState(() {
-        _allPlayers = players;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() => _isLoading = false);
-    }
+  void _notifyChange() {
+    widget.onFilterApplied({
+      'bundesland': selectedBundesland,
+      'liga': selectedLiga,
+      'position': selectedPosition,
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isDesktop = screenWidth > 1024;
-
-    // --- FILTER-LOGIK ---
-    List<Player> filteredPlayers = _allPlayers.where((p) {
-      final matchesSearch = p.name.toLowerCase().contains(_searchQuery) || 
-                            p.club.toLowerCase().contains(_searchQuery);
-      
-      bool matchesFilters = true;
-      if (selectedBundesland != null) matchesFilters = matchesFilters && p.region == selectedBundesland;
-      if (selectedLiga != null) matchesFilters = matchesFilters && p.leagueName == selectedLiga;
-      if (selectedPosition != null) matchesFilters = matchesFilters && p.position == selectedPosition;
-
-      return matchesSearch && matchesFilters;
-    }).toList();
-
-    // --- SORTIERUNG ---
-    if (_sortBy == 'goals') {
-      filteredPlayers.sort((a, b) => b.goals.compareTo(a.goals));
-    } else {
-      filteredPlayers.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-    }
-
-    final displayedPlayers = filteredPlayers.take(_visibleCount).toList();
-
-    return Scaffold(
-      key: _scaffoldKey,
-      body: CustomScrollView(
-        slivers: [
-          // 1. Header (Scrollt mit weg)
-          SliverToBoxAdapter(
-            child: AppHeader(
-              onMenuPressed: isDesktop ? null : () => _scaffoldKey.currentState?.openDrawer(),
-              onSearchChanged: (value) => setState(() {
-                _searchQuery = value.toLowerCase();
-                _visibleCount = 100;
-              }),
-            ),
-          ),
-
-          // 2. FilterLeiste (BLEIBT OBEN FIXIERT)
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: _SliverAppBarDelegate(
-              child: _buildStickyFilterBar(),
-            ),
-          ),
-
-          // 3. Hauptinhalt
-          SliverPadding(
-            padding: const EdgeInsets.all(24),
-            sliver: _isLoading 
-              ? const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
-              : SliverList(
-                  delegate: SliverChildListDelegate([
-                    _buildStatsGrid(isDesktop, filteredPlayers.length),
-                    const SizedBox(height: 32),
-                    _buildResultsHeader(filteredPlayers.length),
-                    const SizedBox(height: 24),
-                    
-                    // Grid für die Spieler
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: isDesktop ? 4 : (screenWidth > 600 ? 2 : 1),
-                        crossAxisSpacing: 20,
-                        mainAxisSpacing: 20,
-                        childAspectRatio: 0.75,
-                      ),
-                      itemCount: displayedPlayers.length,
-                      itemBuilder: (context, index) => PlayerCard(player: displayedPlayers[index]),
-                    ),
-
-                    const SizedBox(height: 40),
-                    if (_visibleCount < filteredPlayers.length) _buildLoadMoreButton(),
-                  ]),
-                ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // --- DIE STICKY FILTER BAR ---
-  Widget _buildStickyFilterBar() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -184,7 +51,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           children: [
             const Icon(LucideIcons.slidersHorizontal, size: 18, color: AppColors.primary),
             const SizedBox(width: 20),
-            
+
             _buildCompactDropdown(
               hint: "Region",
               value: selectedBundesland,
@@ -192,6 +59,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               onChanged: (val) => setState(() {
                 selectedBundesland = val;
                 selectedLiga = null;
+                _notifyChange();
               }),
             ),
             const SizedBox(width: 12),
@@ -199,25 +67,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
               hint: "Liga",
               value: selectedLiga,
               items: selectedBundesland != null ? bundeslandDaten[selectedBundesland]! : [],
-              onChanged: selectedBundesland == null ? null : (val) => setState(() => selectedLiga = val),
+              onChanged: selectedBundesland == null ? null : (val) => setState(() {
+                selectedLiga = val;
+                _notifyChange();
+              }),
             ),
             const SizedBox(width: 12),
             _buildCompactDropdown(
               hint: "Position",
               value: selectedPosition,
               items: ["Tor", "Verteidigung", "Mittelfeld", "Sturm"],
-              onChanged: (val) => setState(() => selectedPosition = val),
+              onChanged: (val) => setState(() {
+                selectedPosition = val;
+                _notifyChange();
+              }),
             ),
-            
-            if (selectedBundesland != null || selectedPosition != null || selectedLiga != null) ...[
+            if (selectedBundesland != null || selectedPosition != null) ...[
               const SizedBox(width: 20),
-              TextButton(
+              TextButton.icon(
                 onPressed: () => setState(() {
                   selectedBundesland = null;
                   selectedLiga = null;
                   selectedPosition = null;
+                  _notifyChange();
                 }),
-                child: const Text("Reset", style: TextStyle(color: AppColors.accent)),
+                icon: const Icon(LucideIcons.x, size: 14),
+                label: const Text("Reset"),
+                style: TextButton.styleFrom(foregroundColor: AppColors.accent),
               ),
             ]
           ],
@@ -226,7 +102,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // --- HILFS-WIDGETS ---
   Widget _buildCompactDropdown({required String hint, required String? value, required List<String> items, required ValueChanged<String?>? onChanged}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -244,68 +119,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           dropdownColor: AppColors.card,
           icon: const Icon(LucideIcons.chevronDown, size: 14),
         ),
-      ),
-    );
-  }
-
-  Widget _buildResultsHeader(int count) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Entdecke Talente', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-            Text('$count Ergebnisse gefunden', style: const TextStyle(color: AppColors.mutedForeground)),
-          ],
-        ),
-        _buildSortDropdown(),
-      ],
-    );
-  }
-
-  Widget _buildStatsGrid(bool isDesktop, int total) {
-    return GridView.count(
-      shrinkWrap: true,
-      crossAxisCount: isDesktop ? 4 : 2,
-      crossAxisSpacing: 16,
-      mainAxisSpacing: 16,
-      childAspectRatio: 1.8,
-      physics: const NeverScrollableScrollPhysics(),
-      children: [
-        StatCard(label: "Spieler", value: total.toString(), icon: LucideIcons.users, iconColor: AppColors.primary, change: ""),
-        const StatCard(label: "Tore", value: "842", icon: LucideIcons.trophy, iconColor: AppColors.accent, change: ""),
-        const StatCard(label: "Schnitt", value: "1.2", icon: LucideIcons.trendingUp, iconColor: AppColors.primary, change: ""),
-        const StatCard(label: "Vereine", value: "24", icon: LucideIcons.shield, iconColor: AppColors.mutedForeground, change: ""),
-      ],
-    );
-  }
-
-  Widget _buildSortDropdown() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: AppColors.input, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: _sortBy,
-          items: const [
-            DropdownMenuItem(value: 'name', child: Text('Name A-Z', style: TextStyle(fontSize: 13))),
-            DropdownMenuItem(value: 'goals', child: Text('Meiste Tore', style: TextStyle(fontSize: 13))),
-          ],
-          onChanged: (value) => setState(() => _sortBy = value!),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLoadMoreButton() {
-    return Center(
-      child: ElevatedButton(
-        onPressed: () => setState(() => _visibleCount += 100),
-        style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-        child: const Text('Weitere 100 laden', style: TextStyle(color: Colors.white)),
       ),
     );
   }
