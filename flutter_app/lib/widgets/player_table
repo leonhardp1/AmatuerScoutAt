@@ -1,0 +1,97 @@
+import 'package:flutter/material.dart';
+import '../models/player.dart';
+import '../theme/app_theme.dart';
+import 'package:lucide_icons/lucide_icons.dart';
+
+class PlayerTable extends StatefulWidget {
+  final List<Player> players;
+  final Function(String, bool) onSort;
+
+  const PlayerTable({super.key, required this.players, required this.onSort});
+
+  @override
+  State<PlayerTable> createState() => _PlayerTableState();
+}
+
+class _PlayerTableState extends State<PlayerTable> {
+  String _currentSortKey = 'name';
+  bool _ascending = true;
+
+  void _handleSort(String key) {
+    setState(() {
+      if (_currentSortKey == key) {
+        _ascending = !_ascending;
+      } else {
+        _currentSortKey = key;
+        _ascending = false; // Standardmäßig meist absteigend (z.B. Tore)
+      }
+    });
+    widget.onSort(_currentSortKey, _ascending);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          headingRowColor: WidgetStateProperty.all(AppColors.muted.withOpacity(0.5)),
+          columns: [
+            _buildSortableHeader("Name", "name"),
+            _buildSortableHeader("Verein", "club"),
+            _buildSortableHeader("Position", "position"),
+            _buildSortableHeader("Alter", "age"),
+            _buildSortableHeader("Spiele", "matches"),
+            _buildSortableHeader("Tore", "goals"),
+            _buildSortableHeader("Rating", "rating"),
+          ],
+          rows: widget.players.map((p) {
+            return DataRow(cells: [
+              DataCell(Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold))),
+              DataCell(Text(p.club)),
+              DataCell(Text(p.position)),
+              DataCell(Text(p.age.toString())),
+              DataCell(Text(p.matches.toString())),
+              DataCell(Text(p.goals.toString())),
+              DataCell(_buildRatingBadge(p.rating.toInt())),
+            ]);
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  DataColumn _buildSortableHeader(String label, String key) {
+    return DataColumn(
+      label: InkWell(
+        onTap: () => _handleSort(key),
+        child: Row(
+          children: [
+            Text(label, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+            const SizedBox(width: 4),
+            Icon(
+              _currentSortKey == key 
+                ? (_ascending ? LucideIcons.chevronUp : LucideIcons.chevronDown)
+                : LucideIcons.chevronsUpDown,
+              size: 14,
+              color: _currentSortKey == key ? AppColors.primary : AppColors.mutedForeground,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRatingBadge(int rating) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(color: AppColors.accent, borderRadius: BorderRadius.circular(6)),
+      child: Text(rating.toString(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+    );
+  }
+}
