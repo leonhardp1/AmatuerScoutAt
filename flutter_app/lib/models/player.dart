@@ -70,7 +70,7 @@ class Player {
       matches: map['matches'] ?? 0,
       minutesPlayed: map['minutes_played'] ?? 0,
       rating: (map['rating'] ?? 0.0).toDouble(),
-      strongFoot: map['strong_foot'] ?? 'Unbekannt',
+      strongFoot: map['strongfoot'] ?? 'Unbekannt',
       height: map['height'] ?? 0,
       weight: map['weight'] ?? 0,
     );
