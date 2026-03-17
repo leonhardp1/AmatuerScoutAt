@@ -1,4 +1,5 @@
 import 'package:amateur_scout_at/screens/clubDetailScreen.dart';
+import 'package:amateur_scout_at/screens/playerComparisonScreen.dart';
 import 'package:amateur_scout_at/services/app_state.dart';
 import 'package:amateur_scout_at/widgets/player_position_screen.dart';
 import 'package:flutter/material.dart';
@@ -29,7 +30,19 @@ class PlayerDetailScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(right: 16.0),
               child: TextButton.icon(
-                onPressed: () {}, // TODO: Vergleichs-Logik
+                onPressed: () {
+
+
+        Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PlayerComparisonScreen(initialPlayer: player),
+      ),
+    );
+
+
+
+                }, 
                 icon: const Icon(LucideIcons.arrowLeftRight, size: 18, color: AppColors.primary),
                 label: const Text("Vergleichen", style: TextStyle(color: AppColors.primary)),
                 style: TextButton.styleFrom(
@@ -86,69 +99,86 @@ class PlayerDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeroHeader() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Row(
-        children: [
-          Container(
-            width: 120,
-            height: 150,
-            decoration: BoxDecoration(
-              color: AppColors.card,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.primary.withOpacity(0.3)),
-              boxShadow: [
-                BoxShadow(
+ Widget _buildHeroHeader() {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 24),
+    child: Row(
+      children: [
+        Container(
+          width: 120,
+          height: 150,
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withOpacity(0.1),
+                blurRadius: 20,
+                spreadRadius: 5,
+              )
+            ],
+          ),
+          // ClipRRect sorgt dafür, dass das Bild innerhalb der abgerundeten Ecken bleibt
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: player.image != null && player.image!.isNotEmpty
+                ? Image.network(
+                    player.image!,
+                    fit: BoxFit.cover, // Füllt den Container komplett aus
+                    errorBuilder: (context, error, stackTrace) => 
+                        const Icon(LucideIcons.user, size: 60, color: AppColors.mutedForeground),
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return const Center(
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      );
+                    },
+                  )
+                : const Icon(LucideIcons.user, size: 60, color: AppColors.mutedForeground),
+          ),
+        ),
+        const SizedBox(width: 24),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
                   color: AppColors.primary.withOpacity(0.1),
-                  blurRadius: 20,
-                  spreadRadius: 5,
-                )
-              ],
-            ),
-            child: const Icon(LucideIcons.user, size: 60, color: AppColors.mutedForeground),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  player.position.toUpperCase(),
+                  style: const TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(player.name, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  const Icon(LucideIcons.mapPin, size: 16, color: AppColors.mutedForeground),
+                  const SizedBox(width: 4),
+                  Text(player.region, style: const TextStyle(color: AppColors.mutedForeground)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  _buildSmallInfoChip(LucideIcons.flag, player.nationality),
+                  const SizedBox(width: 8),
+                  _buildSmallInfoChip(LucideIcons.calendar, "BJ ${player.birthYear}"),
+                ],
+              ),
+            ],
           ),
-          const SizedBox(width: 24),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    player.position.toUpperCase(),
-                    style: const TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(player.name, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.foreground)),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(LucideIcons.mapPin, size: 16, color: AppColors.mutedForeground),
-                    const SizedBox(width: 4),
-                    Text(player.region, style: const TextStyle(color: AppColors.mutedForeground)),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    _buildSmallInfoChip(LucideIcons.flag, player.nationality),
-                    const SizedBox(width: 8),
-                    _buildSmallInfoChip(LucideIcons.calendar, "BJ ${player.birthYear}"),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildSmallInfoChip(IconData icon, String label) {
     return Container(
