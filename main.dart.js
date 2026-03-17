@@ -7796,7 +7796,7 @@ g=a2.h(0,"minutes_played")
 if(g==null)g=0
 f=a2.h(0,"rating")
 f=J.aE2(f==null?0:f)
-e=a2.h(0,"strong_foot")
+e=a2.h(0,"strongfoot")
 if(e==null)e=a
 d=a2.h(0,"height")
 if(d==null)d=0
