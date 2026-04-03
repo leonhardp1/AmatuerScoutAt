@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/app_state.dart';
-import '../models/player.dart';
-import '../theme/app_theme.dart';
+import '../../services/app_state.dart';
+import '../../models/player.dart';
+import '../../theme/app_theme.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'dart:math' as math;
 
@@ -221,7 +221,7 @@ class _PlayerComparisonScreenState extends State<PlayerComparisonScreen>
                       : null,
                 ),
                 child: player.image.isEmpty
-                    ? Icon(LucideIcons.user, color: AppColors.mutedForeground, size: 28)
+                    ? const Icon(LucideIcons.user, color: AppColors.mutedForeground, size: 28)
                     : null,
               ),
               if (player.clubLogo.isNotEmpty)
@@ -262,7 +262,7 @@ class _PlayerComparisonScreenState extends State<PlayerComparisonScreen>
           // Position & Club
           Text(
             '${player.exactPosition} - ${player.club}',
-            style: TextStyle(
+            style: const TextStyle(
               color: AppColors.mutedForeground,
               fontSize: 11,
             ),
@@ -335,11 +335,13 @@ class _PlayerComparisonScreenState extends State<PlayerComparisonScreen>
     void compare(num v1, num v2, {bool lowerIsBetter = false}) {
       total++;
       if (lowerIsBetter) {
-        if (v1 < v2) p1Wins++;
-        else if (v2 < v1) p2Wins++;
+        if (v1 < v2) {
+          p1Wins++;
+        } else if (v2 < v1) p2Wins++;
       } else {
-        if (v1 > v2) p1Wins++;
-        else if (v2 > v1) p2Wins++;
+        if (v1 > v2) {
+          p1Wins++;
+        } else if (v2 > v1) p2Wins++;
       }
     }
 
@@ -377,7 +379,7 @@ class _PlayerComparisonScreenState extends State<PlayerComparisonScreen>
               _buildScoreColumn(player1!.name.split(' ').last, p1Wins, p1Wins > p2Wins),
               Column(
                 children: [
-                  Text(
+                  const Text(
                     'Vergleich',
                     style: TextStyle(
                       fontSize: 11,
@@ -456,7 +458,7 @@ class _PlayerComparisonScreenState extends State<PlayerComparisonScreen>
       children: [
         Text(
           name,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 12,
             color: AppColors.mutedForeground,
             fontWeight: FontWeight.w500,
@@ -626,7 +628,7 @@ class _PlayerComparisonScreenState extends State<PlayerComparisonScreen>
               // Label
               Text(
                 label,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 12,
                   color: AppColors.mutedForeground,
                   fontWeight: FontWeight.w500,
@@ -649,7 +651,7 @@ class _PlayerComparisonScreenState extends State<PlayerComparisonScreen>
                                 width: 6,
                                 height: 6,
                                 margin: const EdgeInsets.only(right: 6),
-                                decoration: BoxDecoration(
+                                decoration: const BoxDecoration(
                                   color: AppColors.primary,
                                   shape: BoxShape.circle,
                                 ),
@@ -703,7 +705,7 @@ class _PlayerComparisonScreenState extends State<PlayerComparisonScreen>
                                 width: 6,
                                 height: 6,
                                 margin: const EdgeInsets.only(left: 6),
-                                decoration: BoxDecoration(
+                                decoration: const BoxDecoration(
                                   color: AppColors.primary,
                                   shape: BoxShape.circle,
                                 ),
@@ -766,7 +768,7 @@ class _PlayerComparisonScreenState extends State<PlayerComparisonScreen>
             ),
             child: Text(
               label,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 10,
                 color: AppColors.mutedForeground,
                 fontWeight: FontWeight.w500,
@@ -814,7 +816,7 @@ class _PlayerComparisonScreenState extends State<PlayerComparisonScreen>
                     width: 6,
                     height: 6,
                     margin: const EdgeInsets.only(right: 6),
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: AppColors.primary,
                       shape: BoxShape.circle,
                     ),
@@ -838,7 +840,7 @@ class _PlayerComparisonScreenState extends State<PlayerComparisonScreen>
             ),
             child: Text(
               label,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 10,
                 color: AppColors.mutedForeground,
                 fontWeight: FontWeight.w500,
@@ -862,7 +864,7 @@ class _PlayerComparisonScreenState extends State<PlayerComparisonScreen>
                     width: 6,
                     height: 6,
                     margin: const EdgeInsets.only(left: 6),
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: AppColors.primary,
                       shape: BoxShape.circle,
                     ),
@@ -902,7 +904,7 @@ class _PlayerComparisonScreenState extends State<PlayerComparisonScreen>
             ),
           ),
           const SizedBox(height: 8),
-          Text(
+          const Text(
             'Waehle zwei Spieler aus, um\nderen Statistiken zu vergleichen',
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -924,8 +926,11 @@ class _PlayerComparisonScreenState extends State<PlayerComparisonScreen>
       builder: (context) => _PlayerSelectionSheet(
         onSelect: (player) {
           setState(() {
-            if (slot == 1) player1 = player;
-            else player2 = player;
+            if (slot == 1) {
+              player1 = player;
+            } else {
+              player2 = player;
+            }
           });
           _triggerBarAnimation();
           Navigator.pop(context);
@@ -950,9 +955,9 @@ class _PlayerSelectionSheetState extends State<_PlayerSelectionSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.background,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: DraggableScrollableSheet(
         initialChildSize: 0.8,
@@ -1040,7 +1045,7 @@ class _PlayerSelectionSheetState extends State<_PlayerSelectionSheet> {
                                   : null,
                             ),
                             child: player.image.isEmpty
-                                ? Icon(LucideIcons.user, color: AppColors.mutedForeground, size: 20)
+                                ? const Icon(LucideIcons.user, color: AppColors.mutedForeground, size: 20)
                                 : null,
                           ),
                           title: Text(
@@ -1049,7 +1054,7 @@ class _PlayerSelectionSheetState extends State<_PlayerSelectionSheet> {
                           ),
                           subtitle: Text(
                             '${player.exactPosition} - ${player.club}',
-                            style: TextStyle(color: AppColors.mutedForeground, fontSize: 12),
+                            style: const TextStyle(color: AppColors.mutedForeground, fontSize: 12),
                           ),
                           trailing: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

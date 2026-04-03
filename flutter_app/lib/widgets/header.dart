@@ -3,12 +3,12 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../theme/app_theme.dart';
 
 class AppHeader extends StatelessWidget {
-  final VoidCallback? onMenuPressed;
+  final String currentPage;
   final Function(String)? onSearchChanged;
 
   const AppHeader({
     super.key,
-    this.onMenuPressed,
+    required this.currentPage,
     this.onSearchChanged,
   });
 
@@ -18,211 +18,171 @@ class AppHeader extends StatelessWidget {
     final isDesktop = screenWidth > 1024;
 
     return Container(
-      height: 64,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: AppColors.background.withOpacity(0.8),
-        border: const Border(
-          bottom: BorderSide(color: AppColors.border),
-        ),
-      ),
+      height: 70,
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+   decoration: BoxDecoration(
+  color: const Color(0xFF0B1220), // dunkles Blau wie im Design
+  border: Border(
+    bottom: BorderSide(color: Colors.white.withOpacity(0.05)),
+  ),
+),
       child: Row(
         children: [
-          if (onMenuPressed != null)
-            IconButton(
-              onPressed: onMenuPressed,
-              icon: const Icon(LucideIcons.menu, size: 20),
-              color: AppColors.foreground,
-            ),
-
-          // --- NEUES LOGO WIDGET ---
-          Hero(
-            tag: 'app_logo',
-            child: Container(
-              width: 36, // Etwas größer für bessere Sichtbarkeit
-              height: 36,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                // Optional: Leichter Hintergrund falls das Logo Transparenz hat
-                color: Colors.white.withOpacity(0.05), 
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.asset(
-                  'assets/images/logo.jpeg', // Pfad zu deinem ScoutBase Logo
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          // --- ENDE LOGO WIDGET ---
-
-          if (isDesktop || screenWidth > 600)
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'ScouteBase',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.foreground,
-                    height: 1.2,
-                  ),
-                ),
-                Text(
-                  'AT',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.accent,
-                  ),
-                ),
-              ],
-            ),
-
-          const SizedBox(width: 32),
-
-          // Search Bar
-          Expanded(
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 500),
-              child: TextField(
-                onChanged: onSearchChanged,
-                style: const TextStyle(fontSize: 14),
-                decoration: InputDecoration(
-                  hintText: 'Search players, clubs, leagues...',
-                  hintStyle: TextStyle(
-                    color: AppColors.mutedForeground,
-                    fontSize: 14,
-                  ),
-                  prefixIcon: Icon(
-                    LucideIcons.search,
-                    size: 18,
-                    color: AppColors.mutedForeground,
-                  ),
-                  suffixIcon: isDesktop
-                      ? Container(
-                          margin: const EdgeInsets.all(8),
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppColors.muted,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(LucideIcons.command, size: 12, color: AppColors.mutedForeground),
-                              const SizedBox(width: 4),
-                              Text(
-                                'K',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.mutedForeground,
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : null,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  filled: true,
-                  fillColor: AppColors.input,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.border),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.border),
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          const SizedBox(width: 16),
-
-          // Notifications
-          Stack(
+          // LOGO
+          Row(
             children: [
-              IconButton(
-                onPressed: () {},
-                icon: Icon(
-                  LucideIcons.bell,
-                  size: 20,
-                  color: AppColors.mutedForeground,
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.white.withOpacity(0.05),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.asset(
+                    'assets/images/logo.jpeg',
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
-              Positioned(
-                right: 10,
-                top: 10,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: AppColors.primary,
-                    shape: BoxShape.circle,
-                  ),
+              const SizedBox(width: 10),
+              const Text(
+                'ScoutBase',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ],
           ),
 
-          // Profile Section
-          Container(
-            padding: const EdgeInsets.only(left: 16),
-            decoration: const BoxDecoration(
-              border: Border(
-                left: BorderSide(color: AppColors.border),
+          const SizedBox(width: 40),
+
+       Row(
+  children: [
+    _NavItem(
+      title: "Dashboard",
+      active: currentPage == "dashboard",
+      onTap: () {
+        Navigator.pushReplacementNamed(context, "/dashboard");
+      },
+    ),
+    _NavItem(
+      title: "Spieler",
+      active: currentPage == "spieler",
+      onTap: () {
+        Navigator.pushReplacementNamed(context, "/spieler");
+      },
+    ),
+    _NavItem(
+      title: "Trainer",
+      active: currentPage == "trainer",
+      onTap: () {
+        Navigator.pushReplacementNamed(context, "/trainer");
+      },
+    ),
+    _NavItem(
+      title: "Vereine",
+      active: currentPage == "vereine",
+      onTap: () {
+        Navigator.pushReplacementNamed(context, "/vereine");
+      },
+    ),
+    _NavItem(
+      title: "Börse",
+      active: currentPage == "boerse",
+      onTap: () {
+        Navigator.pushReplacementNamed(context, "/boerse");
+      },
+    ),
+  ],
+),
+          const Spacer(),
+
+          // SEARCH
+          if (isDesktop)
+            Container(
+              width: 300,
+              margin: const EdgeInsets.only(right: 20),
+              child: TextField(
+                onChanged: onSearchChanged,
+                decoration: InputDecoration(
+                  hintText: 'Spieler suchen...',
+                  prefixIcon: const Icon(LucideIcons.search, size: 18),
+                  filled: true,
+                  fillColor: AppColors.input,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                ),
               ),
             ),
-            child: Row(
+
+          // LOGIN BUTTON
+          ElevatedButton(
+            onPressed: () {},
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: const Row(
               children: [
-                if (isDesktop)
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      const Text(
-                        'Max Mustermann',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.foreground,
-                        ),
-                      ),
-                      Text(
-                        'Pro Scout',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.mutedForeground,
-                        ),
-                      ),
-                    ],
-                  ),
-                const SizedBox(width: 12),
-                Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AppColors.primary.withOpacity(0.3),
-                      width: 2,
-                    ),
-                  ),
-                  child: CircleAvatar(
-                    radius: 18,
-                    backgroundImage: const NetworkImage(
-                      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
-                    ),
-                  ),
+                Icon(LucideIcons.logIn, size: 16, color: Colors.white),
+                SizedBox(width: 8),
+                Text(
+                  "Anmelden",
+                  style: TextStyle(color: Colors.white),
                 ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _NavItem extends StatelessWidget {
+  final String title;
+  final bool active;
+  final VoidCallback onTap; // Neu: Die Aktion beim Klick
+
+  const _NavItem({
+    required this.title, 
+    required this.onTap, // Neu
+    this.active = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell( // Macht das Item klickbar mit Wellen-Effekt
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: active ? AppColors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          title,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: active ? Colors.white : AppColors.mutedForeground,
+          ),
+        ),
       ),
     );
   }

@@ -1,10 +1,10 @@
-import 'package:amateur_scout_at/screens/coachDetailScreen.dart';
+import 'package:amateur_scout_at/screens/extendetScreens/coachDetailScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import '../theme/app_theme.dart';
-import '../models/club.dart';
-import '../models/coach.dart';
-import '../services/api_service.dart';
+import '../../theme/app_theme.dart';
+import '../../models/club.dart';
+import '../../models/coach.dart';
+import '../../services/api_service.dart';
 
 class ClubDetailScreen extends StatefulWidget {
   final Club club;

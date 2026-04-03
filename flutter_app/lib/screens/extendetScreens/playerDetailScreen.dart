@@ -1,11 +1,11 @@
-import 'package:amateur_scout_at/screens/clubDetailScreen.dart';
-import 'package:amateur_scout_at/screens/playerComparisonScreen.dart';
+import 'package:amateur_scout_at/screens/extendetScreens/clubDetailScreen.dart';
+import 'package:amateur_scout_at/screens/extendetScreens/playerComparisonScreen.dart';
 import 'package:amateur_scout_at/services/app_state.dart';
 import 'package:amateur_scout_at/widgets/player_position_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import '../theme/app_theme.dart';
-import '../models/player.dart';
+import '../../theme/app_theme.dart';
+import '../../models/player.dart';
 import 'package:provider/provider.dart';
 
 class PlayerDetailScreen extends StatelessWidget {
@@ -122,9 +122,9 @@ class PlayerDetailScreen extends StatelessWidget {
           // ClipRRect sorgt dafür, dass das Bild innerhalb der abgerundeten Ecken bleibt
           child: ClipRRect(
             borderRadius: BorderRadius.circular(20),
-            child: player.image != null && player.image!.isNotEmpty
+            child: player.image.isNotEmpty
                 ? Image.network(
-                    player.image!,
+                    player.image,
                     fit: BoxFit.cover, // Füllt den Container komplett aus
                     errorBuilder: (context, error, stackTrace) => 
                         const Icon(LucideIcons.user, size: 60, color: AppColors.mutedForeground),

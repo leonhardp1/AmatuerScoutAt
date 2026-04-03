@@ -1,4 +1,4 @@
-import 'package:amateur_scout_at/screens/playerDetailScreen.dart';
+import 'package:amateur_scout_at/screens/extendetScreens/playerDetailScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../theme/app_theme.dart';

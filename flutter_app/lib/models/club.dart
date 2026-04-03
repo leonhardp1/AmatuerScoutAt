@@ -12,8 +12,10 @@ class Club {
   final int? coachId;        // Optional: Verknüpfung zum Coach
   final String playerWithMostMissions;
   final List<String> lastFiveResults; 
-  
-  const Club({
+   int formScore;
+   final int scoredGoals; // Neu: Anzahl der erzielten Tore
+   final int goals_conceded; // Neu: Anzahl der kassierten Tore
+   Club({
     required this.id,
     required this.name,
     required this.logo,
@@ -24,9 +26,12 @@ class Club {
     this.primaryColor = '#000000',
     this.rank = 0,
     this.points = 0,
-    this.coachId = null,
+    this.coachId,
     this.playerWithMostMissions = 'Kein Spieler',
     this.lastFiveResults = const [],
+    this.formScore = 0,
+    this.scoredGoals = 0,
+    this.goals_conceded = 0,
   });
 
   // Factory für API-Daten (analog zum Player)
@@ -42,9 +47,12 @@ factory Club.fromMap(Map<String, dynamic> map) {
     primaryColor: map['primary_color'] ?? '#000000',
     rank: map['rank'] ?? 0,
     points: map['points'] ?? 0,
-    coachId: map['coach_id'] ?? null,
+    coachId: map['coach_id'],
     playerWithMostMissions: map['player_with_most_missions'] ?? 'Kein Spieler',
     lastFiveResults: List<String>.from(map['last_five_results'] ?? []),
+    formScore: map['form_score'] ?? 0,
+    scoredGoals: map['goals_scored'] ?? 0,
+    goals_conceded: map['goals_conceded'] ?? 0,
   );
 }
 

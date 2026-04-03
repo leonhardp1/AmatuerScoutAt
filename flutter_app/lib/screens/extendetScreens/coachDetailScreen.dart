@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import '../theme/app_theme.dart';
-import '../models/coach.dart'; // Achte auf deinen Pfad
+import '../../theme/app_theme.dart';
+import '../../models/coach.dart'; // Achte auf deinen Pfad
 
 class TrainerDetailScreen extends StatelessWidget {
   final Coach coach;

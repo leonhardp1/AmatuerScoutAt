@@ -18,6 +18,7 @@ class Player {
   final String strongFoot;
   final int height;
   final int weight;
+  final int yellow_cards;
 
   const Player({
     required this.id,
@@ -39,6 +40,7 @@ class Player {
     required this.strongFoot,
     required this.height,
     required this.weight,
+    required this.yellow_cards,
   });
 
   int get age => DateTime.now().year - birthYear;
@@ -73,6 +75,7 @@ class Player {
       strongFoot: map['strongfoot'] ?? 'Unbekannt',
       height: map['height'] ?? 0,
       weight: map['weight'] ?? 0,
+      yellow_cards: map['yellow_cards'] ?? 0,
     );
   }
 
