@@ -141,7 +141,8 @@ class _PlayerCardState extends State<PlayerCard> {
                 ),
               ],
             ),
-            const Spacer(),
+
+           const Spacer(),
             _buildViewProfileButton(),
           ],
         ),

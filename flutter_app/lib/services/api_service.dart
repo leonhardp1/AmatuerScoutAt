@@ -256,8 +256,7 @@ Future<List<Club>> getFormStrongestTeams() async {
   }
 
 
-
-
+/// clubs with conditions
 
 
 
@@ -273,57 +272,141 @@ Future<List<Club>> getFormStrongestTeams() async {
 
   /// --- NEU: Erweiterte Suche mit Filterbedingungen ---
   /// Diese Methode nimmt eine Map mit Filterbedingungen entgegen und gibt die passenden Spieler zurück
-  static Future<List<Player>> searchPlayersWithConditions(Map<String, dynamic> filters) async {
-    try {
-      // Zugriff direkt über den Supabase-Singleton, das ist immer erlaubt (auch statisch)
-      final client = Supabase.instance.client;
-      
-      // 1. Basis-Query
-      var query = client.from('players_testing').select();
+  static Future<List<Player>> searchPlayersWithConditions(
+  Map<String, dynamic> filters, {
+  int offset = 0, 
+  int limit = 20,
+}) async {
+  try {
+    final client = Supabase.instance.client;
+    var query = client.from('players_testing').select();
 
-      // 2. Positionen
-      if (filters['positions'] != null && (filters['positions'] as List).isNotEmpty) {
-        query = query.inFilter('position', List<String>.from(filters['positions'])); 
-      }
-
-      // 3. Liga
-      if (filters['league'] != null) {
-        query = query.eq('league_name', filters['league']);
-      }
-
-      // 4. Alter (Hier die Korrektur: ageMin/ageMax Logik für Geburtsjahr)
-      final currentYear = DateTime.now().year;
-      if (filters['ageMin'] != null) {
-        // Ein 18-jähriger (Min) ist 2008 geboren (current - 18)
-        // Wer MINDESTENS 18 sein soll, darf MAXIMAL im Jahr 2008 geboren sein.
-        query = query.lte('birth_year', currentYear - (filters['ageMin'] as int));
-      }
-      if (filters['ageMax'] != null) {
-        // Ein 35-jähriger (Max) ist 1991 geboren (current - 35)
-        // Wer MAXIMAL 35 sein soll, muss MINDESTENS im Jahr 1991 geboren sein.
-        query = query.gte('birth_year', currentYear - (filters['ageMax'] as int));
-      }
-
-      // 5. Rating & Stats
-      if (filters['ratingMin'] != null) {
-        query = query.gte('rating', filters['ratingMin']);
-      }
-      if (filters['goalsMin'] != null) {
-        query = query.gte('goals', filters['goalsMin']);
-      }
-
-      // 6. Namenssuche
-      if (filters['searchName'] != null && filters['searchName'].toString().isNotEmpty) {
-        query = query.ilike('full_name', '%${filters['searchName']}%');
-      }
-
-      // 7. Ausführen
-      final List<dynamic> data = await query; 
-
-      return data.map((item) => Player.fromMap(item)).toList();
-    } catch (e) {
-      print("Fehler bei der Supabase Suche: $e");
-      return [];
+    // --- FILTER ---
+    if (filters['positions'] != null && (filters['positions'] as List).isNotEmpty) {
+      query = query.inFilter('position', List<String>.from(filters['positions'])); 
     }
+
+    if (filters['league'] != null && filters['league'] != "Alle Ligen") {
+      query = query.eq('league_name', filters['league']);
+    }
+
+    final currentYear = DateTime.now().year;
+    if (filters['ageMin'] != null) {
+      query = query.lte('birth_year', currentYear - (filters['ageMin'] as int));
+    }
+    if (filters['ageMax'] != null) {
+      query = query.gte('birth_year', currentYear - (filters['ageMax'] as int));
+    }
+
+    if (filters['ratingMin'] != null) {
+      query = query.gte('rating', filters['ratingMin']);
+    }
+    if (filters['goalsMin'] != null) {
+      query = query.gte('goals', filters['goalsMin']);
+    }
+
+    if (filters['searchName'] != null && filters['searchName'].toString().isNotEmpty) {
+      query = query.ilike('full_name', '%${filters['searchName']}%');
+    }
+
+    // --- EXECUTION ---
+    // .range(0, 19) holt 20 Datensätze. .range(20, 39) holt die nächsten 20.
+    final List<dynamic> data = await query
+        .order('full_name', ascending: true)
+        .range(offset, offset + limit - 1);
+
+    return data.map((item) => Player.fromMap(item)).toList();
+  } catch (e) {
+    print("Fehler bei der Supabase Suche: $e");
+    return [];
   }
 }
+
+
+
+
+
+
+static Future<List<Coach>> searchCoachesWithConditions(Map<String, dynamic> filters) async {
+  try {
+    final client = Supabase.instance.client;
+    
+    // 1. Erstelle die Query ohne sie sofort auszuführen
+    // Wichtig: Wir deklarieren 'query' so, dass wir Filter anhängen können.
+    var query = client.from('coach_testing').select();
+
+    // 2. Filter anhängen (wie gehabt)
+    final search = filters['search'] ?? filters['searchName'];
+    if (search != null && search.toString().trim().isNotEmpty) {
+      query = query.ilike('full_name', '%${search.toString().trim()}%');
+    }
+
+    if (filters['region'] != null && filters['region'] != "Alle Regionen") {
+      query = query.eq('region', filters['region']);
+    }
+
+    if (filters['liga'] != null && filters['liga'] != "Alle Ligen") {
+      query = query.eq('league', filters['liga']);
+    }
+
+    if (filters['lizenz'] != null && filters['lizenz'] != "Alle Lizenzen") {
+      query = query.eq('license', filters['lizenz']);
+    }
+
+    // 3. SORTIERUNG (Hier lag der Fehler)
+    // .order() muss am Ende der Filter-Kette stehen, bevor das 'await' kommt.
+    final List<dynamic> data = await query.order('full_name', ascending: true);
+
+    return data.map((item) => Coach.fromMap(item)).toList();
+  } catch (e) {
+    print("Fehler bei der Supabase Coach Suche: $e");
+    return [];
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+static Future<List<Club>> searchClubsWithConditions({
+  String? query,
+  String? region,
+  String? league,
+}) async {
+  try {
+    final client = Supabase.instance.client;
+    var supabaseQuery = client.from('club_testing').select();
+
+    if (query != null && query.trim().isNotEmpty) {
+      supabaseQuery = supabaseQuery.ilike('name', '%${query.trim()}%');
+    }
+
+    if (region != null && region != "Alle Regionen") {
+      supabaseQuery = supabaseQuery.eq('region', region);
+    }
+
+    if (league != null && league != "Alle Ligen") {
+      supabaseQuery = supabaseQuery.eq('league_name', league);
+    }
+
+    final List<dynamic> data = await supabaseQuery.order('name', ascending: true);
+
+    return data.map((item) => Club.fromMap(item)).toList();
+  } catch (e) {
+    print("Fehler bei der Supabase Club Suche: $e");
+    return [];
+  }
+}
+
+
+
+}
+

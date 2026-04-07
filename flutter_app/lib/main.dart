@@ -1,4 +1,6 @@
+import 'package:amateur_scout_at/screens/generalScreens/searchCoach_screen.dart';
 import 'package:amateur_scout_at/screens/generalScreens/searchPlayer_screen.dart';
+import 'package:amateur_scout_at/screens/generalScreens/searchClub_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
@@ -40,6 +42,8 @@ class AmateurScoutApp extends StatelessWidget {
       routes: {
         "/dashboard": (context) => const DashboardScreen(),
         "/spieler": (context) => const SearchPlayerScreen(),
+        "/trainer": (context) => const SearchCoachScreen(),
+        "/vereine": (context) => const SearchClubScreen(),
       },
 
       /// 🔥 START LOGIK

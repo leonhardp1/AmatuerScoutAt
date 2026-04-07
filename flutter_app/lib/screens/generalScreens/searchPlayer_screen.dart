@@ -1,12 +1,11 @@
 import 'dart:async';
-import 'package:amateur_scout_at/widgets/header.dart';
-import 'package:amateur_scout_at/widgets/playerFilterWidget.dart';
-import 'package:amateur_scout_at/widgets/player_results_view.dart'; // Das neue Widget importieren
-import 'package:amateur_scout_at/services/api_service.dart';
-import 'package:amateur_scout_at/models/player.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:amateur_scout_at/theme/app_theme.dart'; // Falls deine Farben dort liegen
+import '../../widgets/header.dart';
+import '../../widgets/playerFilterWidget.dart';
+import '../../widgets/player_results_view.dart';
+import '../../services/api_service.dart';
+import '../../models/player.dart';
 
 class SearchPlayerScreen extends StatefulWidget {
   const SearchPlayerScreen({super.key});
@@ -18,10 +17,15 @@ class SearchPlayerScreen extends StatefulWidget {
 class _SearchPlayerScreenState extends State<SearchPlayerScreen> {
   List<Player> _players = [];
   bool _isLoading = false;
+  bool _isLoadMoreLoading = false;
+  bool _hasMoreData = true; // Steuert die Sichtbarkeit des Buttons
+  
   Map<String, dynamic> _currentFilters = {};
   Timer? _debounce;
 
-  // Zustände für das neue Result-Widget
+  int _currentOffset = 0;
+  final int _pageSize = 20;
+
   bool _isGridView = true;
   String _sortColumn = 'name';
   bool _sortAscending = true;
@@ -29,28 +33,60 @@ class _SearchPlayerScreenState extends State<SearchPlayerScreen> {
   @override
   void initState() {
     super.initState();
-    _performSearch(); // Initiales Laden beim Start
+    _performSearch(isInitialSearch: true);
   }
 
   void _onFilterChanged(Map<String, dynamic> filters) {
     setState(() {
       _currentFilters = filters;
+      _currentOffset = 0;
+      _hasMoreData = true; // Wichtig: Zurücksetzen bei neuem Filter
     });
 
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {
-      _performSearch();
+      _performSearch(isInitialSearch: true);
     });
   }
 
-  Future<void> _performSearch() async {
-    setState(() => _isLoading = true);
-    final results = await ApiService.searchPlayersWithConditions(_currentFilters);
+  Future<void> _performSearch({bool isInitialSearch = true}) async {
+    if (isInitialSearch) {
+      setState(() {
+        _isLoading = true;
+        _currentOffset = 0;
+        _players = []; // Liste leeren für neue Suche
+      });
+    } else {
+      setState(() => _isLoadMoreLoading = true);
+    }
+
+    final results = await ApiService.searchPlayersWithConditions(
+      _currentFilters,
+      offset: _currentOffset,
+      limit: _pageSize,
+    );
     
     if (mounted) {
       setState(() {
-        _players = results;
+        if (isInitialSearch) {
+          _players = results;
+        } else {
+          _players.addAll(results);
+        }
+        
         _isLoading = false;
+        _isLoadMoreLoading = false;
+        
+        // --- DER ENTSCHEIDENDE CHECK ---
+        // Wenn wir weniger bekommen als wir wollten, ist die DB leer.
+        if (results.length < _pageSize) {
+          _hasMoreData = false;
+        } else {
+          _hasMoreData = true;
+        }
+        
+        // Erhöhe den Offset um die Anzahl der wirklich geladenen Spieler
+        _currentOffset += results.length;
       });
     }
   }
@@ -81,46 +117,62 @@ class _SearchPlayerScreenState extends State<SearchPlayerScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "Spieler suchen",
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
+                  const Text("Spieler suchen", 
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
                   const SizedBox(height: 20),
-
                   PlayerFilterWidget(onFilterChanged: _onFilterChanged),
-
                   const SizedBox(height: 40),
-
-                  /// --- ERGEBNISSE HEADER MIT TOGGLE BUTTON ---
+                  
+                  // Header Result Row
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        "Ergebnisse (${_players.length})",
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                      ),
+                      Text("Ergebnisse (${_players.length})",
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
                       Row(
                         children: [
-                          if (_isLoading)
-                            const Padding(
-                              padding: EdgeInsets.only(right: 15),
-                              child: SizedBox(
-                                width: 20, height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              ),
-                            ),
-                          // Die Umschalt-Buttons
-                          _buildViewToggleButton(LucideIcons.layoutGrid, true),
+                          if (_isLoading) const SizedBox(width: 20, height: 20, 
+                             child: CircularProgressIndicator(strokeWidth: 2)),
+                          const SizedBox(width: 15),
+                          _buildToggle(LucideIcons.layoutGrid, true),
                           const SizedBox(width: 8),
-                          _buildViewToggleButton(LucideIcons.list, false),
+                          _buildToggle(LucideIcons.list, false),
                         ],
                       ),
                     ],
                   ),
                   const SizedBox(height: 20),
 
-                  /// --- SPIELER AREA (Grid oder Tabelle) ---
+                  // Die Spieler-Liste / Grid
                   _buildResultsArea(screenWidth),
+
+                  // --- MEHR LADEN BUTTON ---
+                  if (_hasMoreData && _players.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 40),
+                      child: Center(
+                        child: _isLoadMoreLoading
+                            ? const CircularProgressIndicator()
+                            : ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF3B82F6),
+                                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                onPressed: () => _performSearch(isInitialSearch: false),
+                                child: const Text("Mehr Spieler laden", 
+                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              ),
+                      ),
+                    ),
+                  
+                  // "Ende der Liste" Hinweis
+                  if (!_hasMoreData && _players.isNotEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 40),
+                      child: Center(child: Text("Alle Spieler geladen", 
+                        style: TextStyle(color: Colors.white24))),
+                    ),
                 ],
               ),
             ),
@@ -130,89 +182,47 @@ class _SearchPlayerScreenState extends State<SearchPlayerScreen> {
     );
   }
 
-  Widget _buildViewToggleButton(IconData icon, bool isGridButton) {
-    bool isActive = _isGridView == isGridButton;
+  Widget _buildToggle(IconData icon, bool grid) {
+    bool active = _isGridView == grid;
     return GestureDetector(
-      onTap: () => setState(() => _isGridView = isGridButton),
+      onTap: () => setState(() => _isGridView = grid),
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: isActive ? const Color(0xFF3B82F6) : Colors.white10,
+          color: active ? const Color(0xFF3B82F6) : Colors.white10,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(icon, size: 20, color: isActive ? Colors.white : Colors.white54),
+        child: Icon(icon, size: 20, color: active ? Colors.white : Colors.white54),
       ),
     );
   }
 
-Widget _buildResultsArea(double width) {
-  if (_isLoading && _players.isEmpty) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 50),
-      child: const Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
-  }
+  Widget _buildResultsArea(double width) {
+    if (_isLoading && _players.isEmpty) {
+      return const Center(child: Padding(padding: EdgeInsets.only(top: 80), child: CircularProgressIndicator()));
+    }
+    if (!_isLoading && _players.isEmpty) {
+      return const Center(child: Padding(padding: EdgeInsets.only(top: 80), 
+        child: Text("Keine Spieler gefunden", style: TextStyle(color: Colors.white54))));
+    }
 
-  if (!_isLoading && _players.isEmpty) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 50),
-      child: const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.search_off, size: 64, color: Colors.white24),
-            SizedBox(height: 16),
-            Text(
-              "Keine Spieler gefunden",
-              style: TextStyle(color: Colors.white54, fontSize: 16),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Hier nutzen wir jetzt dein neues Widget!
-  return PlayerResultsView(
-    players: _players,
-    isGridView: _isGridView,
-    isDesktop: width > 1024,
-    isTablet: width > 600,
-    sortColumn: _sortColumn,
-    sortAscending: _sortAscending,
-    onSort: (key) {
-      setState(() {
-        if (_sortColumn == key) {
-          _sortAscending = !_sortAscending;
-        } else {
-          _sortColumn = key;
-          _sortAscending = false;
-        }
-        // Sortierung der Liste lokal
-        _players.sort((a, b) {
-          int cmp;
-          switch (key) {
-            case 'goals':
-              cmp = a.goals.compareTo(b.goals);
-              break;
-            case 'matches':
-              cmp = a.matches.compareTo(b.matches);
-              break;
-            case 'age':
-              cmp = a.age.compareTo(b.age);
-              break;
-            case 'rating':
-              cmp = a.rating.compareTo(b.rating);
-              break;
-            default:
-              cmp = a.name.toLowerCase().compareTo(b.name.toLowerCase());
-          }
-          return _sortAscending ? cmp : -cmp;
+    return PlayerResultsView(
+      players: _players,
+      isGridView: _isGridView,
+      isDesktop: width > 1024,
+      isTablet: width > 600,
+      sortColumn: _sortColumn,
+      sortAscending: _sortAscending,
+      onSort: (key) {
+        setState(() {
+          if (_sortColumn == key) _sortAscending = !_sortAscending;
+          else { _sortColumn = key; _sortAscending = true; }
+          // Lokale Sortierung der bereits geladenen Spieler
+          _players.sort((a, b) {
+            return _sortAscending ? a.name.compareTo(b.name) : b.name.compareTo(a.name);
+          });
         });
-      });
-    },
-  );
-}
+      },
+    );
+  }
 }

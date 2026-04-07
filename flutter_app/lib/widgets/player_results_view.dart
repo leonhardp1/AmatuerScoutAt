@@ -45,8 +45,9 @@ class PlayerResultsView extends StatelessWidget {
     }
   }
 
-  Widget _buildPlayerTable(BuildContext context) {
+ Widget _buildPlayerTable(BuildContext context) {
     return Container(
+      width: double.infinity, // Zwingt den Container auf volle Breite
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: AppColors.card,
@@ -56,41 +57,46 @@ class PlayerResultsView extends StatelessWidget {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
-        child: DataTable(
-          showCheckboxColumn: false,
-          headingRowColor: WidgetStateProperty.all(AppColors.muted.withOpacity(0.15)),
-          columns: [
-            _buildSortableHeader("Name", "name"),
-            _buildSortableHeader("Alter", "age"),
-            _buildSortableHeader("Spiele", "matches"),
-            _buildSortableHeader("Tore", "goals"),
-            _buildSortableHeader("Rating", "rating"),
-            const DataColumn(label: Text("Club", style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.mutedForeground))),
-          ],
-          rows: players.map((p) {
-            return DataRow(
-              onSelectChanged: (_) {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => PlayerDetailScreen(player: p)));
-              },
-              cells: [
-                DataCell(Row(children: [
-                  CircleAvatar(radius: 14, child: Text(p.name[0])),
-                  const SizedBox(width: 12),
-                  Text(p.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                ])),
-                DataCell(Text(p.age.toString())),
-                DataCell(Text(p.matches.toString())),
-                DataCell(Text(p.goals.toString())),
-                DataCell(_buildRatingBadge(p.rating)),
-                DataCell(Text(p.club)),
-              ],
-            );
-          }).toList(),
+        child: ConstrainedBox(
+          // Das ist der Trick: Die Tabelle muss mindestens so breit sein wie der Bildschirm
+          constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width - 48), // 48 ist das Padding (24 links + 24 rechts)
+          child: DataTable(
+            showCheckboxColumn: false,
+            // Erhöht den Abstand zwischen den Spalten, damit sie sich verteilen
+            columnSpacing: isDesktop ? 40 : 20, 
+            headingRowColor: WidgetStateProperty.all(AppColors.muted.withOpacity(0.15)),
+            columns: [
+              _buildSortableHeader("Name", "name"),
+              _buildSortableHeader("Alter", "age"),
+              _buildSortableHeader("Spiele", "matches"),
+              _buildSortableHeader("Tore", "goals"),
+              _buildSortableHeader("Rating", "rating"),
+              const DataColumn(label: Text("Club", style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.mutedForeground))),
+            ],
+            rows: players.map((p) {
+              return DataRow(
+                onSelectChanged: (_) {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => PlayerDetailScreen(player: p)));
+                },
+                cells: [
+                  DataCell(Row(mainAxisSize: MainAxisSize.min, children: [
+                    CircleAvatar(radius: 14, child: Text(p.name[0])),
+                    const SizedBox(width: 12),
+                    Text(p.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  ])),
+                  DataCell(Text(p.age.toString())),
+                  DataCell(Text(p.matches.toString())),
+                  DataCell(Text(p.goals.toString())),
+                  DataCell(_buildRatingBadge(p.rating)),
+                  DataCell(Text(p.club)),
+                ],
+              );
+            }).toList(),
+          ),
         ),
       ),
     );
   }
-
   DataColumn _buildSortableHeader(String label, String key) {
     bool isSelected = sortColumn == key;
     return DataColumn(

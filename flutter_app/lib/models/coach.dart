@@ -9,6 +9,11 @@ class Coach {
   final String coachingLicense;
   final int yearsExperience;
   final double winRate;
+  final int wins;
+  final int losses;
+  final int draws;
+ 
+
 
   const Coach({
     required this.id,
@@ -21,6 +26,9 @@ class Coach {
     this.coachingLicense = 'B-Lizenz',
     this.yearsExperience = 0,
     this.winRate = 0.0,
+    this.wins = 0,
+    this.losses = 0,
+    this.draws = 0,
   });
 
   int get age => DateTime.now().year - birthYear;
@@ -37,6 +45,10 @@ class Coach {
       coachingLicense: map['coaching_license'] ?? 'B-Lizenz',
       yearsExperience: map['years_experience'] ?? 0,
       winRate: (map['win_rate'] ?? 0.0).toDouble(),
+
+      wins: map['wins'] ?? 0,
+      losses: map['losses'] ?? 0,
+      draws: map['draws'] ?? 0,
     );
   }
 
